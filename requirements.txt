@@ -1,0 +1,8 @@
+# CyberSentinel AI: optional Python backend (backend/app.py)
+# The front end (index.html) needs no installation; these are only for real ML training.
+# Tested with Python 3.12.
+scikit-learn>=1.8
+pandas>=2.2
+numpy>=1.26
+joblib>=1.3
+flask>=3.0
