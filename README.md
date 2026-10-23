@@ -1,84 +1,125 @@
 # CyberSentinel AI
 
-An intelligent cyber threat detection and visualization dashboard, built as a final-year cybersecurity project prototype.
+An educational cybersecurity dashboard that visualizes **simulated** network threats and classifies network-flow events, with an optional Python backend that trains a Random Forest on synthetic data.
 
-> **DEMO DATA — Simulated network events.** Nothing in this application is live threat intelligence. It does not monitor your network, query external services, scan hosts or send any traffic.
+> **DEMO DATA — Simulated network events.** CyberSentinel does not monitor your network, query external threat-intelligence services, scan hosts or send any traffic. Nothing it shows is a real attack.
+
+**Live demo (rule-based mode):** https://ashmita-29.github.io/CyberSentinel/ (enable it under Settings → Pages; see [Deploy](#deploy))
 
 ## Features
 
-- **Overview**: KPIs, attack distribution, activity timeline, top source locations and recent alerts, all computed from the loaded data.
-- **Global Threat Map**: stylized SVG world map with animated simulated attack paths, clickable markers, legend, filters (attack type, severity, region), zoom/reset and pause/resume.
-- **Live Event Simulation**: start, pause, stop, generate one or a batch of events, choose category and speed, reset demo data.
-- **Threat Detection**: edit or load a sample network event and classify it into 7 classes, with severity, explanation and recommended response.
-- **Alerts & Incidents**: search, filters, detail side panel, acknowledge / investigate / resolve actions (saved in the browser's `localStorage`).
-- **Dataset & Model**: 560 labeled synthetic flow records (seed 42), searchable paginated preview, CSV copy/download, CSV upload with validation, data dictionary, and rule-based evaluation metrics with a confusion matrix.
-- **Analytics**: filter-aware charts and a table of synthetic indicators.
-- **Settings & About**: problem statement, objective, methodology and limitations.
+| Page | What it does |
+|---|---|
+| Overview | KPIs, attack distribution, activity timeline, top source locations and recent alerts, all computed from the loaded data |
+| Global Threat Map | Stylized SVG world map with animated simulated attack paths, clickable markers, legend, filters (type, severity, region), zoom/reset, pause/resume |
+| Live Event Simulation | Start, pause, stop, generate one or a batch of events, pick a category and speed, reset demo data |
+| Threat Detection | Edit or load a sample flow, classify it into 7 classes with severity, explanation and recommended response |
+| Alerts & Incidents | Search, filters, detail panel, acknowledge / investigate / resolve (saved in `localStorage`) |
+| Dataset & Model | 560 labeled synthetic records (seed 42), searchable preview, CSV copy/download, validated CSV upload, data dictionary, rule evaluation, and ML results when the backend runs |
+| Analytics | Filter-aware charts and a table of synthetic indicators |
+| Settings & About | Problem statement, objective, methodology, limitations |
 
-## Classes
+**Classes:** Normal Traffic, DDoS / DoS, Port Scanning / Reconnaissance, Brute-Force Login, Suspicious Malware-Related Traffic, Suspicious Phishing Indicators, Data Exfiltration / Unusual Outbound Traffic. When features are elevated but no pattern matches, the result is *"Suspicious — Further Investigation Required"*.
 
-Normal Traffic, DDoS / DoS, Port Scanning / Reconnaissance, Brute-Force Login, Suspicious Malware-Related Traffic, Suspicious Phishing Indicators, Data Exfiltration / Unusual Outbound Traffic. When evidence matches no rule but features are elevated, the result is "Suspicious — Further Investigation Required".
+## Tech stack
 
-## Architecture
+- **Front end:** a single `index.html` (plain HTML, CSS, JavaScript, inline SVG). No build step, no dependencies.
+- **Back end (optional):** Python 3.12, Flask, scikit-learn, pandas, NumPy, joblib.
 
-The whole application is a single static file, `index.html`, written in plain HTML, CSS and JavaScript with no build step and no dependencies.
+## Project structure
 
-1. **Data generation**: a seeded PRNG (mulberry32) creates 80 records per class using RFC 5737 documentation IP ranges, then shuffles them.
-2. **Classification**: a transparent rule-based classifier uses failed-login count, destination-port diversity, packet count, response bytes, duration, outbound/inbound byte ratio and destination port.
-3. **Severity**: assigned per predicted class (Critical, High, Medium, None).
-4. **Visualization**: SVG map and charts rendered from the event list.
-5. **Investigation**: alerts carry a status that persists in the browser.
+```
+CyberSentinel/
+├── index.html          # the whole dashboard
+├── README.md
+├── requirements.txt    # optional Python backend
+├── .gitignore
+└── backend/
+    ├── app.py          # Flask API (binds to 127.0.0.1)
+    ├── model.py        # Random Forest training and prediction
+    └── dataset.py      # seeded synthetic dataset generator
+```
 
-## Optional: real ML training with Python
+## Quick start
 
-The `backend/` folder adds a scikit-learn **Random Forest** trained through a Flask API.
+**Front end only (no installation):**
 
 ```bash
+python -m http.server 8000
+# open http://localhost:8000/
+```
+
+**With real ML training:**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python backend/app.py          # serves http://127.0.0.1:5000
+python backend/app.py
+# open http://127.0.0.1:5000 , go to Dataset & Model, press "Train Model"
 ```
 
-Open `http://127.0.0.1:5000`, go to **Dataset & Model** and press **Train Model**. The page shows the backend status, then the held-out test accuracy, per-class precision/recall/F1, confusion matrix and feature importances. On **Threat Detection**, each classified event also shows the Random Forest label with its vote-share confidence once the model is trained.
+The page shows a "Python backend connected" badge when the API is reachable. Use `http://127.0.0.1:5000` (not the hosted page) because the backend only listens locally.
 
-- Features: destination port, protocol, duration, packet count, bytes sent/received, failed logins, unique destination ports, byte ratio.
-- Identifiers (timestamp, IP addresses, source port) are excluded to avoid leakage; exact duplicates are removed before a stratified 75/25 split.
-- Confidence is the forest's vote share, not a calibrated probability; below 0.5 the result is "Suspicious — Further Investigation Required".
-- `python backend/dataset.py` writes the seeded dataset (a share of attack rows overlap with normal ranges). The Python and in-browser generators are separate, so their records differ.
-- The backend binds to 127.0.0.1 only, so the hosted/published page cannot reach it; use the local run above.
+## How it works
 
-## Run the front end only
+1. **Data.** A seeded generator creates 80 records per class using RFC 5737 documentation IP ranges. About 15% of rows are low-intensity "stealth" variants that overlap with normal traffic.
+2. **Rule-based classifier (browser).** Transparent thresholds on failed logins, destination-port diversity, packet count, response bytes, duration, byte ratio and destination port. It gives no confidence score.
+3. **Random Forest (backend).** Features: destination port, protocol, duration, packet count, bytes sent/received, failed logins, unique destination ports, byte ratio. Timestamps, IP addresses and source ports are excluded to avoid leakage, exact duplicates are removed before a stratified 75/25 split, and all metrics come from the held-out test set. Confidence is the forest's vote share, not a calibrated probability; below 0.5 the result is "Suspicious — Further Investigation Required".
+4. **Severity.** Assigned per predicted class (Critical, High, Medium, None).
+5. **Investigation.** Alerts carry a status (New, Acknowledged, Investigating, Resolved).
 
-No installation is needed. Either:
+### Rule thresholds (first match wins)
 
-```bash
-# Option 1: open the file directly
-open index.html          # macOS; on Windows double-click it, on Linux use xdg-open
+| Class | Condition |
+|---|---|
+| Brute-Force Login | failed logins ≥ 5 |
+| Port Scanning | unique destination ports ≥ 15 and packets ≤ 300 |
+| DDoS / DoS | packets ≥ 3000, bytes received < 5000, duration < 60 s |
+| Data Exfiltration | outbound/inbound ratio ≥ 10 and bytes sent ≥ 2 MB |
+| Malware-related | port in {4444, 6667, 31337, 1337}, duration ≥ 300 s, bytes sent < 10 KB |
+| Phishing indicators | port in {8080, 8443, 8888}, ≥ 1 failed login, duration < 10 s, bytes sent < 5 KB |
 
-# Option 2: serve it locally
-python3 -m http.server 8000
-# then visit http://localhost:8000
-```
+## Results from a test run
 
-## Deploy
+Trained on the 560-record generated dataset (140 held-out test records): test accuracy **100%**, with 5-fold cross-validation on the training split of about **99.5%**. These scores show that the synthetic classes are separable. They do **not** show how the model would perform on real traffic.
 
-- **Vercel**: import the repository as a project, framework preset "Other", no build command, output directory left at the root.
-- **GitHub Pages**: Settings → Pages → deploy from branch `main`, folder `/ (root)`.
+## API (backend)
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/health` | Status and whether a model is trained |
+| POST | `/api/train` | Train on posted CSV text (`{"csv": "..."}`) or the built-in dataset |
+| GET | `/api/metrics` | Latest held-out metrics |
+| POST | `/api/predict` | Classify one flow event |
+| GET | `/api/dataset.csv` | Download the generated dataset |
 
 ## Limitations
 
-- Without the Python backend, this is a **Rule-Based Demo Classifier**: no ML model, no confidence scores, and "Train Model" is disabled.
-- The "Rule evaluation" panel measures the hand-written rules against the labels of the loaded dataset. They are **not** held-out ML test-set metrics and do not indicate real-world detection performance.
-- The synthetic classes are intentionally well separated, so reported metrics are optimistic.
-- Malware and phishing outputs are indicators only; real detection would need host, URL or content evidence.
-- The map is a stylized SVG, not OpenStreetMap tiles, and all locations and paths are simulated.
-- Even the Random Forest is trained on synthetic data, so near-perfect test scores show the classes are separable, not that it would detect real attacks.
-- The Threat Intelligence page, time-range filter and React/Tailwind/Recharts stack are not included in this version.
-- Browser downloads may be blocked in some hosted/sandboxed environments; use "Copy CSV" as a fallback.
+- Without the backend, classification is **rule-based**; no ML model is involved and no confidence scores are shown.
+- The "Rule evaluation" panel measures hand-written rules against generator labels; it is not a held-out ML evaluation.
+- All data, locations and attack paths are synthetic. Good scores on synthetic data do not establish real-world detection performance.
+- Malware and phishing outputs are indicators only; reliable detection needs host, URL or content evidence.
+- The map is a stylized SVG, not live tiles.
+- Browser downloads may be blocked in sandboxed environments; use "Copy CSV" instead.
 
-## Possible future work
+## Future work
 
-Train on a public labeled flow dataset (for example CIC-IDS2017) for realistic evaluation, add a dedicated Threat Intelligence page, and add a time-range filter.
+Train and evaluate on a public labeled flow dataset such as CIC-IDS2017, add a Threat Intelligence page and a time-range filter, and calibrate model confidence.
+
+## Deploy
+
+- **GitHub Pages:** Settings → Pages → Deploy from branch `main`, folder `/ (root)`. The hosted page runs in rule-based mode.
+- **Vercel:** import the repository, preset "Other", no build command.
+
+## Ethics
+
+Use this project only for learning. Do not point it at systems you do not own, and do not treat its output as security advice.
+
+## Author
+
+Ashmita ([@ashmita-29](https://github.com/ashmita-29)). Add your full name, institution and guide here.
 
 ## Licence
 
-Add a licence of your choice (for example MIT) before publishing.
+Add a licence file (for example MIT) before reuse by others.
