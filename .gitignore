@@ -1,0 +1,4 @@
+backend/artifacts/
+__pycache__/
+.venv/
+ 
