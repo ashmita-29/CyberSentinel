@@ -4,7 +4,7 @@ An educational cybersecurity dashboard that visualizes **simulated** network thr
 
 > **DEMO DATA — Simulated network events.** CyberSentinel does not monitor your network, query external threat-intelligence services, scan hosts or send any traffic. Nothing it shows is a real attack.
 
-**Live demo (rule-based mode):** https://ashmita-29.github.io/CyberSentinel/ (enable it under Settings → Pages; see [Deploy](#deploy))
+**Live demo (rule-based mode):** https://cybersentinel-tau.vercel.app/
 
 ## Features
 
@@ -43,23 +43,8 @@ CyberSentinel/
 ## Quick start
 
 **Front end only (no installation):**
-
-```bash
-python -m http.server 8000
-# open http://localhost:8000/
-```
-
 **With real ML training:**
 
-```bash
-python -m venv .venv
-source .venv/bin/activate        # Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python backend/app.py
-# open http://127.0.0.1:5000 , go to Dataset & Model, press "Train Model"
-```
-
-The page shows a "Python backend connected" badge when the API is reachable. Use `http://127.0.0.1:5000` (not the hosted page) because the backend only listens locally.
 
 ## How it works
 
@@ -107,19 +92,11 @@ Trained on the 560-record generated dataset (140 held-out test records): test ac
 
 Train and evaluate on a public labeled flow dataset such as CIC-IDS2017, add a Threat Intelligence page and a time-range filter, and calibrate model confidence.
 
-## Deploy
-
-- **GitHub Pages:** Settings → Pages → Deploy from branch `main`, folder `/ (root)`. The hosted page runs in rule-based mode.
-- **Vercel:** import the repository, preset "Other", no build command.
-
 ## Ethics
 
 Use this project only for learning. Do not point it at systems you do not own, and do not treat its output as security advice.
 
 ## Author
 
-Ashmita ([@ashmita-29](https://github.com/ashmita-29)). Add your full name, institution and guide here.
+Ashmita ([@ashmita-29](https://github.com/ashmita-29)). 
 
-## Licence
-
-Add a licence file (for example MIT) before reuse by others.
